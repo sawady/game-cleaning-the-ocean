@@ -1,7 +1,11 @@
 gamePaused = false
 
-fishes = {}
-trashes = {}
+gameObjects = {}
+debug = false
+
+function collide(x, y, object)
+  return object.x <= x and x <= object.x + object.width and object.y <= y and y <= object.y + object.height
+end
 
 function makeSprite(path, x, y, scale, speed)
   local object = {}
@@ -9,20 +13,22 @@ function makeSprite(path, x, y, scale, speed)
   object.x = x
   object.y = y
   object.speed = speed
-  object.width = object.image:getWidth()
-  object.height = object.image:getHeight()
+  if scale == nil then
+    scale = 1
+  end
   object.scale = scale
+  object.width = object.image:getWidth() * scale
+  object.height = object.image:getHeight() * scale
+  object.tags = {}
   return object
 end
 
-function drawFishes()
-  for key, value in ipairs(fishes) do
-    drawSprite(value)
-  end
+function setTag(obj, tag)
+  table.insert(obj.tags, tag)
 end
 
-function drawTrashes()
-  for key, value in ipairs(trashes) do
+function drawObjects()
+  for key, value in ipairs(gameObjects) do
     drawSprite(value)
   end
 end
@@ -38,34 +44,56 @@ end
 
 function drawSprite(sprite)
   love.graphics.draw(sprite.image, sprite.x, sprite.y, math.rad(0), sprite.scale, sprite.scale)
+  if debug then
+    love.graphics.rectangle("line", sprite.x, sprite.y, sprite.width, sprite.height)
+  end
 end
 
-function updateObjects(objects, dt)
-  for key, value in ipairs(objects) do
+function objectAt(x, y)
+  for key, value in ipairs(gameObjects) do
+    if collide(x, y, value) then
+      return key
+    end
+  end
+end
+
+function updateObjects(dt)
+  for key, value in ipairs(gameObjects) do
     value.x = value.x + value.speed * dt
   end
 end
 
-function checkObjects(objects)
-  for key, value in ipairs(objects) do
-    if (value.x > love.graphics.getWidth() - 100) then
-      table.remove(objects, key)
+function outside(x)
+  return x > love.graphics.getWidth() - 100
+end
+
+function checkObjects(x, y)
+  for key, value in ipairs(gameObjects) do
+    if outside(value.x) then
+      table.remove(gameObjects, key)
     end
   end
+end
+
+function makeFish(x, y, speed)
+  return makeSprite("fish", x, y, 0.4, speed)
+end
+
+function makeTrash(x, y, speed)
+  return makeSprite("trash", x, y, 0.7, speed)
 end
 
 function love.load()
   background = makeSprite("background", 0, 0)
   hand = makeSprite("hand", 0, 0, 1.2)
-  table.insert(fishes, makeSprite("fish", 300, 300, 0.5, 150))
-  table.insert(trashes, makeSprite("trash", 200, 200, 0.7, 150))
+  table.insert(gameObjects, makeFish(300, 300, 50))
+  table.insert(gameObjects, makeTrash(200, 200, 50))
 end
 
 function love.draw()
   drawSprite(background)
   drawLines()
-  drawFishes()
-  drawTrashes()
+  drawObjects()
   drawSprite(hand)
 end
 
@@ -75,10 +103,15 @@ function love.update(dt)
   end
   hand.x = love.mouse.getX() - (hand.width / 2)
   hand.y = love.mouse.getY() - (hand.height / 2)
-  checkObjects(fishes, dt)
-  checkObjects(trashes, dt)
-  updateObjects(fishes, dt)
-  updateObjects(trashes, dt)
+  checkObjects()
+  updateObjects(dt)
+end
+
+function love.mousepressed(x, y, button, istouch, presses)
+  local k = objectAt(x, y)
+  if k ~= nil then
+    table.remove(gameObjects, k)
+  end
 end
 
 function love.keypressed(k)
