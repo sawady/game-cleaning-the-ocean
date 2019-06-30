@@ -196,6 +196,9 @@ function love.load()
   font = love.graphics.newFont("graphics/animeace2_reg.ttf", 50)
   love.graphics.setFont(font)
   hand = makeSprite("hand", 0, 0, 1.2)
+  local music = love.audio.newSource("sounds/background.mp3", "static")
+  music:play()
+  popSound = love.audio.newSource("sounds/pop.ogg", "static")
 end
 
 function drawGameOver()
@@ -272,6 +275,7 @@ function love.mousepressed(x, y, button, istouch, presses)
   if k ~= nil then
     addPoints(k)
     gameObjects[k].removing = true
+    popSound:play()
   end
 end
 
